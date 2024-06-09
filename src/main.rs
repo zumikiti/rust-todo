@@ -40,8 +40,10 @@ fn main() {
 
         if action == String::from("add") {
             todo_list = add_todo(todo_list);
+        } else if action == String::from("done") {
+            todo_list = done_todo(todo_list);
         } else {
-            println!("non match action.")
+            println!("non match action.");
         }
 
         show_all_todo(&todo_list);
@@ -80,6 +82,40 @@ fn add_todo(mut todo_list: Vec<Todo>) -> Vec<Todo> {
         value: todo,
         done: false,
     });
+
+    return todo_list;
+}
+
+fn done_todo(mut todo_list: Vec<Todo>) -> Vec<Todo> {
+    println!("Please input done todo id.");
+
+    let mut num = String::new();
+
+    io::stdin()
+        .read_line(&mut num)
+        .expect("Failed to read line");
+
+    let num = match num.trim().parse() {
+        Ok(num) => num,
+        Err(_) => {
+            return todo_list;
+        },
+    };
+
+    let mut found = false;
+    for todo in &mut todo_list {
+        if todo.uid == num {
+            todo.done = true;
+            found = true;
+            break;
+        }
+    }
+
+    if found {
+        println!("updated!");
+    } else {
+        println!("undefined todo. id: {}..", num);
+    }
 
     return todo_list;
 }
