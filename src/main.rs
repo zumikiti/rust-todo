@@ -1,3 +1,5 @@
+use std::io;
+
 struct Todo {
     uid: i64,
     value: String,
@@ -21,6 +23,31 @@ fn main() {
     });
 
     show_all_todo(&todo_list);
+
+    loop {
+        println!("Please input your todo.");
+
+        let mut todo = String::new();
+
+        io::stdin()
+            .read_line(&mut todo)
+            .expect("Failed to read line");
+
+        todo = match todo.trim().parse() {
+            Ok(string) => string,
+            Err(_) => continue,
+        };
+
+        let num: i64 = (todo_list.len() +1).try_into().unwrap();
+
+        todo_list.push(Todo {
+            uid: num,
+            value: todo,
+            done: false,
+        });
+
+        show_all_todo(&todo_list);
+    }
 }
 
 fn show_all_todo(todos: &Vec<Todo>) {
