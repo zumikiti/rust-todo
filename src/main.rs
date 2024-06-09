@@ -1,35 +1,33 @@
-use rand::Rng;
-use std::cmp::Ordering;
-use std::io;
+struct Todo {
+    uid: i64,
+    value: String,
+    done: bool,
+}
 
 fn main() {
-    println!("Guess the number!");
+    println!("start todo list");
 
-    let secret_number = rand::thread_rng().gen_range(1..101);
+    let mut todo_list: Vec<Todo> = Vec::new();
 
-    loop {
-        println!("Please input your guess.");
+    todo_list.push(Todo {
+        uid: 1,
+        value: String::from("hoge"),
+        done: false,
+    });
+    todo_list.push(Todo {
+        uid: 2,
+        value: String::from("fuga"),
+        done: true,
+    });
 
-        let mut guess = String::new();
+    show_all_todo(todo_list);
+}
 
-        io::stdin()
-            .read_line(&mut guess)
-            .expect("Failed to read line");
+fn show_all_todo(todos: Vec<Todo>) {
+    println!("### タスク一覧 ###");
 
-        let guess: u32 = match guess.trim().parse() {
-            Ok(num) => num,
-            Err(_) => continue,
-        };
-
-        println!("You guessed: {}", guess);
-
-        match guess.cmp(&secret_number) {
-            Ordering::Less => println!("Too small!"),
-            Ordering::Greater => println!("Too big!"),
-            Ordering::Equal => {
-                println!("You win!");
-                break;
-            }
-        }
+    for todo in todos {
+        let done_text = if todo.done { "完了" } else { "未完了" };
+        println!("ID:{} | {} ({})", todo.uid, todo.value, done_text);
     }
 }
