@@ -20,10 +20,10 @@ fn main() {
         done: true,
     });
 
-    show_all_todo(todo_list);
+    show_all_todo(&todo_list);
 }
 
-fn show_all_todo(todos: Vec<Todo>) {
+fn show_all_todo(todos: &Vec<Todo>) {
     println!("### タスク一覧 ###");
 
     for todo in todos {
