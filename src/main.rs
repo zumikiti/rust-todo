@@ -25,7 +25,7 @@ fn main() {
     show_all_todo(&todo_list);
 
     loop {
-        println!("Please input action.");
+        println!("Please input action. add or done");
 
         let mut action = String::new();
 
