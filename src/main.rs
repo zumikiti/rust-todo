@@ -72,10 +72,10 @@ fn add_todo(mut todo_list: Vec<Todo>) -> Vec<Todo> {
         Ok(string) => string,
         Err(_) => {
             return todo_list;
-        },
+        }
     };
 
-    let num: i64 = (todo_list.len() +1).try_into().unwrap();
+    let num: i64 = (todo_list.len() + 1).try_into().unwrap();
 
     todo_list.push(Todo {
         uid: num,
@@ -99,7 +99,7 @@ fn done_todo(mut todo_list: Vec<Todo>) -> Vec<Todo> {
         Ok(num) => num,
         Err(_) => {
             return todo_list;
-        },
+        }
     };
 
     let mut found = false;
