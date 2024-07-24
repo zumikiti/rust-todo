@@ -64,6 +64,8 @@ async fn select_all_db() -> Result<(), sqlx::Error> {
         .max_connections(5)
         .connect(&database_url)
         .await?;
+    
+    sqlx::migrate!("./migrations").run(&pool).await?;
 
     // 接続テスト用の簡単なクエリ
     let row: (i64,) = sqlx::query_as("SELECT $1")
