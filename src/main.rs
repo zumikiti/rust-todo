@@ -1,4 +1,7 @@
-use std::io;
+use std::{env, io};
+
+use dotenv::dotenv;
+use sqlx::postgres::PgPoolOptions;
 
 struct Todo {
     uid: i64,
@@ -8,6 +11,8 @@ struct Todo {
 
 fn main() {
     println!("start todo list");
+
+    let _ = select_all_db();
 
     let mut todo_list: Vec<Todo> = Vec::new();
 
@@ -48,6 +53,27 @@ fn main() {
 
         show_all_todo(&todo_list);
     }
+}
+
+#[tokio::main]
+async fn select_all_db() -> Result<(), sqlx::Error> {
+    dotenv().ok();
+
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&database_url)
+        .await?;
+
+    // 接続テスト用の簡単なクエリ
+    let row: (i64,) = sqlx::query_as("SELECT $1")
+        .bind(150_i64)
+        .fetch_one(&pool)
+        .await?;
+
+    println!("Result: {}", row.0);
+
+    Ok(())
 }
 
 fn show_all_todo(todos: &Vec<Todo>) {
