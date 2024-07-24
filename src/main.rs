@@ -67,13 +67,33 @@ async fn select_all_db() -> Result<(), sqlx::Error> {
     
     sqlx::migrate!("./migrations").run(&pool).await?;
 
-    // 接続テスト用の簡単なクエリ
-    let row: (i64,) = sqlx::query_as("SELECT $1")
-        .bind(150_i64)
-        .fetch_one(&pool)
-        .await?;
+    let mut todo_list: Vec<Todo> = Vec::new();
 
-    println!("Result: {}", row.0);
+    todo_list.push(Todo {
+        uid: 1,
+        value: String::from("hoge"),
+        done: false,
+    });
+    todo_list.push(Todo {
+        uid: 2,
+        value: String::from("fuga"),
+        done: true,
+    });
+
+    for todo in todo_list {
+        create(&todo, &pool).await?;
+    }
+
+    Ok(())
+}
+
+async fn create(todo: &Todo, pool: &sqlx::PgPool) -> Result<(), sqlx::Error> {
+    let query = "INSERT INTO todos (name) VALUES ($1)";
+
+    sqlx::query(query)
+        .bind(&todo.value)
+        .execute(pool)
+        .await?;
 
     Ok(())
 }
