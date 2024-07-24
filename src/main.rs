@@ -95,7 +95,7 @@ fn done_todo(mut todo_list: Vec<Todo>) -> Vec<Todo> {
         .read_line(&mut num)
         .expect("Failed to read line");
 
-    let num = match num.trim().parse() {
+    let num = match num.trim().parse::<i64>() {
         Ok(num) => num,
         Err(_) => {
             return todo_list;
