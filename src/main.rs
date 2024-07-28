@@ -3,6 +3,7 @@ use std::{env, io};
 use dotenv::dotenv;
 use sqlx::{postgres::PgPoolOptions, prelude::FromRow};
 
+// Todo構造体に対して#[derive(Debug, FromRow)]属性を追加し、SQLクエリの結果を直接Todo型にマッピングできるよう
 #[derive(Debug, FromRow)]
 struct Todo {
     uid: i64,
@@ -34,8 +35,8 @@ async fn main() {
 
         if action == String::from("add") {
             let _ = add_todo().await;
-        // } else if action == String::from("done") {
-            // todo_list = done_todo(todo_list);
+        } else if action == String::from("done") {
+            let _ = done_todo().await;
         } else {
             println!("non match action.");
         }
@@ -121,7 +122,19 @@ async fn add_todo() -> Result<(), &'static str> {
     return Ok(());
 }
 
-fn done_todo(mut todo_list: Vec<Todo>) -> Vec<Todo> {
+async fn done(uid: i64) {
+    let pool = db().await;
+
+    let query = "UPDATE todos SET done = 't' WHERE id = $1";
+
+    sqlx::query(query)
+        .bind(&uid)
+        .execute(&pool)
+        .await
+        .expect("failed to updated todos.");
+}
+
+async fn done_todo() -> Result<(), &'static str> {
     println!("Please input done todo id.");
 
     let mut num = String::new();
@@ -133,24 +146,13 @@ fn done_todo(mut todo_list: Vec<Todo>) -> Vec<Todo> {
     let num = match num.trim().parse::<i64>() {
         Ok(num) => num,
         Err(_) => {
-            return todo_list;
+            return Err("done todo parse Err.");
         }
     };
 
-    let mut found = false;
-    for todo in &mut todo_list {
-        if todo.uid == num {
-            todo.done = true;
-            found = true;
-            break;
-        }
-    }
+    let _ = done(num).await;
 
-    if found {
-        println!("updated!");
-    } else {
-        println!("undefined todo. id: {}..", num);
-    }
+    println!("updated!");
 
-    return todo_list;
+    Ok(())
 }
