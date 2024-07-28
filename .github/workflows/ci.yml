@@ -1,0 +1,55 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: testdatabase
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+
+    - name: Install SQLx CLI
+      run: cargo install sqlx-cli
+
+    - name: Wait for Postgres
+      run: |
+        until pg_isready -h localhost -p 5432 -U testuser; do
+          sleep 1
+        done
+
+    - name: Run database migrations
+      env:
+        DATABASE_URL: postgres://testuser:testpassword@localhost/testdatabase
+      run: |
+        sqlx migrate run
+
+    - name: Run tests
+      env:
+        DATABASE_URL: postgres://testuser:testpassword@localhost/testdatabase
+        TEST_DATABASE_URL: postgres://testuser:testpassword@localhost/testdatabase
+      run: cargo test
+
