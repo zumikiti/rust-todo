@@ -1,0 +1,15 @@
+services:
+  pgsql:
+    image: postgres:16
+    ports:
+      - '${TEST_PGSQL_PORT:-5432}:5432'
+    environment:
+      POSTGRES_DB: 'testdatabase'
+      POSTGRES_USER: 'testuser'
+      POSTGRES_PASSWORD: 'testpassword'
+      TZ: 'Asia/Tokyo'
+      PGTZ: 'Asia/Tokyo'
+    healthcheck:
+      test: ["CMD", "pg_isready -U testuser"]
+      retries: 3
+      timeout: 5s
