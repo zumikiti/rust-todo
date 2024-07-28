@@ -22,7 +22,8 @@ mod tests {
     async fn setup_test_db() -> sqlx::PgPool {
         dotenv().ok();
 
-        let test_database_url = env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL must be set");
+        let test_database_url =
+            env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL must be set");
         PgPoolOptions::new()
             .max_connections(5)
             .connect(&test_database_url)
@@ -33,7 +34,10 @@ mod tests {
     #[tokio::test]
     async fn test_get_db_pool() {
         let pool = setup_test_db().await;
-        assert!(pool.acquire().await.is_ok(), "Failed to acquire a connection");
+        assert!(
+            pool.acquire().await.is_ok(),
+            "Failed to acquire a connection"
+        );
     }
 }
 
