@@ -1,28 +1,23 @@
-use std::io;
+use std::{env, io};
 
+use dotenv::dotenv;
+use sqlx::{postgres::PgPoolOptions, prelude::FromRow};
+
+// Todo構造体に対して#[derive(Debug, FromRow)]属性を追加し、SQLクエリの結果を直接Todo型にマッピングできるよう
+#[derive(Debug, FromRow)]
 struct Todo {
     uid: i64,
     value: String,
     done: bool,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     println!("start todo list");
 
-    let mut todo_list: Vec<Todo> = Vec::new();
+    let _ = init().await;
 
-    todo_list.push(Todo {
-        uid: 1,
-        value: String::from("hoge"),
-        done: false,
-    });
-    todo_list.push(Todo {
-        uid: 2,
-        value: String::from("fuga"),
-        done: true,
-    });
-
-    show_all_todo(&todo_list);
+    let _ = show_all_todo().await;
 
     loop {
         println!("Please input action. [add / done]");
@@ -39,27 +34,74 @@ fn main() {
         };
 
         if action == String::from("add") {
-            todo_list = add_todo(todo_list);
+            let _ = add_todo().await;
         } else if action == String::from("done") {
-            todo_list = done_todo(todo_list);
+            let _ = done_todo().await;
         } else {
             println!("non match action.");
         }
 
-        show_all_todo(&todo_list);
+        let _ = show_all_todo().await;
     }
 }
 
-fn show_all_todo(todos: &Vec<Todo>) {
+async fn db() -> sqlx::Pool<sqlx::Postgres> {
+    dotenv().ok();
+
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&database_url)
+        .await
+        .expect("Failed to connect to the database");
+
+    pool
+}
+
+async fn init() -> Result<(), sqlx::Error> {
+    let pool = db().await;
+    sqlx::migrate!("./migrations").run(&pool).await?;
+
+    Ok(())
+}
+
+async fn select_all() -> Vec<Todo> {
+    let pool = db().await;
+
+    let q = "SELECT id AS uid, name AS value, done FROM todos ORDER BY id asc";
+
+    let todos: Vec<Todo> = sqlx::query_as::<_, Todo>(q)
+        .fetch_all(&pool)
+        .await
+        .expect("failed to fetch todos");
+
+    todos
+}
+
+async fn create(value: &str) {
+    let pool = db().await;
+
+    let query = "INSERT INTO todos (name) VALUES ($1)";
+
+    sqlx::query(query)
+        .bind(&value)
+        .execute(&pool)
+        .await
+        .expect("failed inserted.");
+}
+
+async fn show_all_todo() {
     println!("### タスク一覧 ###");
 
-    for todo in todos {
+    let todos = select_all().await;
+
+    todos.iter().for_each(|todo| {
         let done_text = if todo.done { "完了" } else { "未完了" };
         println!("ID:{} | {} ({})", todo.uid, todo.value, done_text);
-    }
+    })
 }
 
-fn add_todo(mut todo_list: Vec<Todo>) -> Vec<Todo> {
+async fn add_todo() -> Result<(), &'static str> {
     println!("Please input new todo.");
 
     let mut todo = String::new();
@@ -71,22 +113,28 @@ fn add_todo(mut todo_list: Vec<Todo>) -> Vec<Todo> {
     todo = match todo.trim().parse() {
         Ok(string) => string,
         Err(_) => {
-            return todo_list;
+            return Err("add todo parse Err.");
         }
     };
 
-    let num: i64 = (todo_list.len() + 1).try_into().unwrap();
+    let _ = create(&todo).await;
 
-    todo_list.push(Todo {
-        uid: num,
-        value: todo,
-        done: false,
-    });
-
-    return todo_list;
+    return Ok(());
 }
 
-fn done_todo(mut todo_list: Vec<Todo>) -> Vec<Todo> {
+async fn done(uid: i64) {
+    let pool = db().await;
+
+    let query = "UPDATE todos SET done = 't' WHERE id = $1";
+
+    sqlx::query(query)
+        .bind(&uid)
+        .execute(&pool)
+        .await
+        .expect("failed to updated todos.");
+}
+
+async fn done_todo() -> Result<(), &'static str> {
     println!("Please input done todo id.");
 
     let mut num = String::new();
@@ -95,27 +143,16 @@ fn done_todo(mut todo_list: Vec<Todo>) -> Vec<Todo> {
         .read_line(&mut num)
         .expect("Failed to read line");
 
-    let num = match num.trim().parse() {
+    let num = match num.trim().parse::<i64>() {
         Ok(num) => num,
         Err(_) => {
-            return todo_list;
+            return Err("done todo parse Err.");
         }
     };
 
-    let mut found = false;
-    for todo in &mut todo_list {
-        if todo.uid == num {
-            todo.done = true;
-            found = true;
-            break;
-        }
-    }
+    let _ = done(num).await;
 
-    if found {
-        println!("updated!");
-    } else {
-        println!("undefined todo. id: {}..", num);
-    }
+    println!("updated!");
 
-    return todo_list;
+    Ok(())
 }
