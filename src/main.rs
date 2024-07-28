@@ -1,33 +1,22 @@
 use std::{env, io};
 
 use dotenv::dotenv;
-use sqlx::postgres::PgPoolOptions;
+use sqlx::{postgres::PgPoolOptions, prelude::FromRow};
 
+#[derive(Debug, FromRow)]
 struct Todo {
     uid: i64,
     value: String,
     done: bool,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     println!("start todo list");
 
-    let _ = select_all_db();
+    let _ = init().await;
 
-    let mut todo_list: Vec<Todo> = Vec::new();
-
-    todo_list.push(Todo {
-        uid: 1,
-        value: String::from("hoge"),
-        done: false,
-    });
-    todo_list.push(Todo {
-        uid: 2,
-        value: String::from("fuga"),
-        done: true,
-    });
-
-    show_all_todo(&todo_list);
+    let _ = show_all_todo().await;
 
     loop {
         println!("Please input action. [add / done]");
@@ -44,70 +33,74 @@ fn main() {
         };
 
         if action == String::from("add") {
-            todo_list = add_todo(todo_list);
-        } else if action == String::from("done") {
-            todo_list = done_todo(todo_list);
+            let _ = add_todo().await;
+        // } else if action == String::from("done") {
+            // todo_list = done_todo(todo_list);
         } else {
             println!("non match action.");
         }
 
-        show_all_todo(&todo_list);
+        let _ = show_all_todo().await;
     }
 }
 
-#[tokio::main]
-async fn select_all_db() -> Result<(), sqlx::Error> {
+async fn db() -> sqlx::Pool<sqlx::Postgres> {
     dotenv().ok();
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&database_url)
-        .await?;
-    
+        .await
+        .expect("Failed to connect to the database");
+
+    pool
+}
+
+async fn init() -> Result<(), sqlx::Error> {
+    let pool = db().await;
     sqlx::migrate!("./migrations").run(&pool).await?;
-
-    let mut todo_list: Vec<Todo> = Vec::new();
-
-    todo_list.push(Todo {
-        uid: 1,
-        value: String::from("hoge"),
-        done: false,
-    });
-    todo_list.push(Todo {
-        uid: 2,
-        value: String::from("fuga"),
-        done: true,
-    });
-
-    for todo in todo_list {
-        create(&todo, &pool).await?;
-    }
 
     Ok(())
 }
 
-async fn create(todo: &Todo, pool: &sqlx::PgPool) -> Result<(), sqlx::Error> {
+async fn select_all() -> Vec<Todo> {
+    let pool = db().await;
+
+    let q = "SELECT id AS uid, name AS value, done FROM todos ORDER BY id asc";
+
+    let todos: Vec<Todo> = sqlx::query_as::<_, Todo>(q)
+        .fetch_all(&pool)
+        .await
+        .expect("failed to fetch todos");
+
+    todos
+}
+
+async fn create(value: &str) {
+    let pool = db().await;
+
     let query = "INSERT INTO todos (name) VALUES ($1)";
 
     sqlx::query(query)
-        .bind(&todo.value)
-        .execute(pool)
-        .await?;
-
-    Ok(())
+        .bind(&value)
+        .execute(&pool)
+        .await
+        .expect("failed inserted.");
 }
 
-fn show_all_todo(todos: &Vec<Todo>) {
+async fn show_all_todo() {
     println!("### タスク一覧 ###");
 
-    for todo in todos {
+    let todos = select_all().await;
+
+    todos.iter().for_each(|todo| {
         let done_text = if todo.done { "完了" } else { "未完了" };
         println!("ID:{} | {} ({})", todo.uid, todo.value, done_text);
-    }
+    })
 }
 
-fn add_todo(mut todo_list: Vec<Todo>) -> Vec<Todo> {
+async fn add_todo() -> Result<(), &'static str> {
     println!("Please input new todo.");
 
     let mut todo = String::new();
@@ -119,19 +112,13 @@ fn add_todo(mut todo_list: Vec<Todo>) -> Vec<Todo> {
     todo = match todo.trim().parse() {
         Ok(string) => string,
         Err(_) => {
-            return todo_list;
+            return Err("add todo parse Err.");
         }
     };
 
-    let num: i64 = (todo_list.len() + 1).try_into().unwrap();
+    let _ = create(&todo).await;
 
-    todo_list.push(Todo {
-        uid: num,
-        value: todo,
-        done: false,
-    });
-
-    return todo_list;
+    return Ok(());
 }
 
 fn done_todo(mut todo_list: Vec<Todo>) -> Vec<Todo> {
