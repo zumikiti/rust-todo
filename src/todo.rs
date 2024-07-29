@@ -146,7 +146,8 @@ mod tests {
             .await
             .expect("Failed to insert test todo");
 
-        // テスト対象の関数を呼び出します
+        // テスト実行
+        // @TODO 出力の内容のアサーションができていない
         show_all_todo().await;
 
         cleanup_test_db(&pool).await;
