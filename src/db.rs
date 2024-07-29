@@ -31,6 +31,17 @@ pub mod tests {
             .expect("Failed to connect to the test database")
     }
 
+    pub async fn cleanup_test_db(pool: &sqlx::PgPool) {
+        sqlx::query("DROP SCHEMA public CASCADE;")
+            .execute(pool)
+            .await
+            .expect("Failed to drop schema");
+        sqlx::query("CREATE SCHEMA public;")
+            .execute(pool)
+            .await
+            .expect("Failed to create schema");
+    }
+
     #[tokio::test]
     async fn test_get_db_pool() {
         let pool = setup_test_db().await;

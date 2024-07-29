@@ -107,7 +107,7 @@ pub async fn done_todo() -> Result<(), &'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::tests::setup_test_db;
+    use crate::db::tests::{cleanup_test_db, setup_test_db};
 
     #[tokio::test]
     async fn test_select_all() {
@@ -129,6 +129,8 @@ mod tests {
                 .expect("Failed to fetch todos");
 
         assert!(!todos.is_empty(), "No todos found");
+
+        cleanup_test_db(&pool).await;
     }
 
     #[tokio::test]
@@ -146,5 +148,7 @@ mod tests {
 
         // テスト対象の関数を呼び出します
         show_all_todo().await;
+
+        cleanup_test_db(&pool).await;
     }
 }
