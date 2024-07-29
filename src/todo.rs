@@ -103,3 +103,48 @@ pub async fn done_todo() -> Result<(), &'static str> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::tests::setup_test_db;
+
+    #[tokio::test]
+    async fn test_select_all() {
+        let pool = setup_test_db().await;
+
+        // マイグレーション実行
+        let _ = sqlx::migrate!("./migrations").run(&pool).await;
+
+        // ここでテスト用データを挿入することができます
+        sqlx::query("INSERT INTO todos (name, done) VALUES ('Test Todo', false)")
+            .execute(&pool)
+            .await
+            .expect("Failed to insert test todo");
+
+        let todos: Vec<Todo> =
+            sqlx::query_as::<_, Todo>("SELECT id AS uid, name AS value, done FROM todos")
+                .fetch_all(&pool)
+                .await
+                .expect("Failed to fetch todos");
+
+        assert!(!todos.is_empty(), "No todos found");
+    }
+
+    #[tokio::test]
+    async fn test_show_all_todo() {
+        let pool = setup_test_db().await;
+
+        // マイグレーション実行
+        let _ = sqlx::migrate!("./migrations").run(&pool).await;
+
+        // ここでテスト用データを挿入することができます
+        sqlx::query("INSERT INTO todos (name, done) VALUES ('Test Todo', false)")
+            .execute(&pool)
+            .await
+            .expect("Failed to insert test todo");
+
+        // テスト対象の関数を呼び出します
+        show_all_todo().await;
+    }
+}

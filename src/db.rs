@@ -15,11 +15,11 @@ pub async fn get_db_pool() -> sqlx::Pool<sqlx::Postgres> {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use std::env;
 
-    async fn setup_test_db() -> sqlx::PgPool {
+    pub async fn setup_test_db() -> sqlx::PgPool {
         dotenv().ok();
 
         let test_database_url =
