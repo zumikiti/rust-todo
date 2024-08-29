@@ -1,6 +1,12 @@
 ## Rust でToDoアプリ
 練習で作った Rust アプリ
 
+### 初期設定
+```
+cp .env.example .env
+```
+
+### 実行
 ```sh
 $ cargo run
 
@@ -25,4 +31,9 @@ ID:1 | hoge (完了)
 ID:2 | fuga (完了)
 ID:3 | test (未完了)
 Please input action.
+```
+
+### TEST
+```
+.TaskFile test
 ```
